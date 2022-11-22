@@ -4,19 +4,48 @@ import logging
 import os
 import datetime
 import time
+import sys
 from influxdb import InfluxDBClient
-
-
-BASE_TOPIC = "tele/power_meter/"
-MEASUREMENT = os.getenv("INFLUXDB_DB")
-TIMEZONE = "Z"
-LOGLEVEL = os.getenv("LOGLEVEL", "INFO")
-
-logging.basicConfig(level=LOGLEVEL.upper())
 
 
 def boolean_env_is_true(env):
     return os.getenv(env, "false").lower() == "true"
+
+
+INFLUXDB_HOST = os.getenv("INFLUXDB_HOST")
+INFLUXDB_DB = os.getenv("INFLUXDB_DB")
+INFLUXDB_PORT = int(os.getenv("INFLUXDB_PORT", "8086"))
+INFLUXDB_USER = os.getenv("INFLUXDB_USER")
+INFLUXDB_PASSWORD = os.getenv("INFLUXDB_PASSWORD")
+INFLUXDB_SSL = boolean_env_is_true("INFLUXDB_SSL")
+INFLUXDB_NO_VERIFY_SSL = not boolean_env_is_true("INFLUXDB_NO_VERIFY_SSL")
+MQTT_HOST = os.getenv("MQTT_HOST")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+BASE_TOPIC = os.getenv("BASE_TOPIC")
+LOGLEVEL = os.getenv("LOGLEVEL", "INFO")
+TIMEZONE = os.getenv("TIMEZONE", "Z")
+
+
+# Log to stdout for Docker logs
+logging.basicConfig(stream=sys.stdout,
+                    format="%(asctime)s ~ %(levelname)s ~ %(name)s:%(filename)s@%(funcName)-8s | %(message)s",
+                    level=LOGLEVEL.upper())
+
+logging.info(f"Tasmota MQTT InfluxDB exporter started.")
+
+logging.info(f"Environment variables:")
+logging.info(f"INFLUXDB_HOST: " + INFLUXDB_HOST)
+logging.info(f"INFLUXDB_DB: " + INFLUXDB_DB)
+logging.info(f"INFLUXDB_PORT: " + str(INFLUXDB_PORT))
+logging.info(f"INFLUXDB_USER: " + INFLUXDB_USER)
+logging.info(f"INFLUXDB_PASSWORD: REDACTED")
+logging.info(f"INFLUXDB_SSL: " + str(INFLUXDB_SSL))
+logging.info(f"INFLUXDB_NO_VERIFY_SSL: " + str(INFLUXDB_NO_VERIFY_SSL))
+logging.info(f"MQTT_HOST: " + MQTT_HOST)
+logging.info(f"MQTT_PORT: " + str(MQTT_PORT))
+logging.info(f"BASE_TOPIC: " + BASE_TOPIC)
+logging.info(f"LOGLEVEL: " + LOGLEVEL)
+logging.info(f"TIMEZONE: " + TIMEZONE)
 
 
 def tasmota_uptime_to_seconds(uptime_string):
@@ -69,7 +98,9 @@ def parse_sensor_message_into_influxdb_point(power_socket, topic, msg):
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc))
+    logging.info(f"Connected to MQTT client. Result code " + str(rc))
+
+    logging.info(f"Subscribing to " + BASE_TOPIC + "#")
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -105,15 +136,23 @@ def main():
         verify_ssl=not boolean_env_is_true("INFLUXDB_NO_VERIFY_SSL"),
     )
 
+    logging.info(f"InfluxDB client initialised.")
+
     mqtt_client = mqtt.Client(userdata={"influxdb_client": influxdb_client})
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
 
+    logging.info(f"MQTT client initialised.")
+
     logger = logging.getLogger("mqttclient")
     mqtt_client.enable_logger(logger)
 
+    logging.info(f"Attempting to connect to MQTT client...")
+
     mqtt_client.connect(os.getenv("MQTT_HOST"), int(os.getenv("MQTT_PORT", "1883")), 60)
     # mqtt_client.connect("localhost", 1883, 60)
+
+    logging.info(f"Listening to MQTT client...")
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.

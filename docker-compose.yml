@@ -3,15 +3,25 @@ version: "3.7"
 volumes:
   influxdata:
 
+
 services:
   app:
-    build: .
+    container_name: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./main.py:/app/main.py
     environment:
+      # https://stackoverflow.com/q/29663459/4494375
+      # PYTHONUNBUFFERED: 1 # For if -u in the Dockerfile doesn't work, allows logs to be displayed
+      BASE_TOPIC: tele/power_meter/
       INFLUXDB_HOST: influxdb
       INFLUXDB_USER: user
       INFLUXDB_PASSWORD: user
       INFLUXDB_DB: tasmota
       MQTT_HOST: 192.168.178.3
+
   influxdb:
     image: influxdb:1.7
     ports:

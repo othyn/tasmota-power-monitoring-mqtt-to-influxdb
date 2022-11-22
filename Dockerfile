@@ -12,11 +12,15 @@ RUN poetry install --no-dev
 
 COPY main.py ./
 
+# --- --- ---
+
 FROM python:3.8-slim AS runtime
 
 WORKDIR /app
+
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY --from=build /app/ ./
 
-CMD [ "python", "main.py" ]
+# https://stackoverflow.com/q/29663459/4494375
+CMD [ "python", "-u", "main.py" ]

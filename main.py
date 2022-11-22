@@ -28,7 +28,7 @@ TIMEZONE = os.getenv("TIMEZONE", "Z")
 
 # Log to stdout for Docker logs
 logging.basicConfig(stream=sys.stdout,
-                    format="%(asctime)s ~ %(levelname)s ~ %(name)s:%(filename)s@%(funcName)-8s | %(message)s",
+                    format="%(asctime)-3s %(levelname)-3s %(name)s:%(filename)s@%(funcName)-12s | %(message)s",
                     level=LOGLEVEL.upper())
 
 logging.info(f"Tasmota MQTT InfluxDB exporter started.")

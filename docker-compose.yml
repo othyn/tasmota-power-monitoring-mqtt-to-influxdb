@@ -13,9 +13,7 @@ services:
     volumes:
       - ./main.py:/app/main.py
     environment:
-      # https://stackoverflow.com/q/29663459/4494375
-      # PYTHONUNBUFFERED: 1 # For if -u in the Dockerfile doesn't work, allows logs to be displayed
-      BASE_TOPIC: tele/power_meter/
+      BASE_TOPIC: tele/
       INFLUXDB_HOST: influxdb
       INFLUXDB_USER: user
       INFLUXDB_PASSWORD: user
